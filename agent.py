@@ -1,6 +1,10 @@
 from langchain.chat_models import init_chat_model
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
+from rich.console import Console
+from rich.prompt import Prompt
+from rich.panel import Panel
+import time
 import os
 import subprocess
 from langchain_core.tools import tool
@@ -8,6 +12,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 import json
 load_dotenv()
+
+console = Console()
 
 SANDBOX_DIR = Path("D:\Project\Cursor_mini\work") .resolve()
 SANDBOX_DIR.mkdir(exist_ok=True)
@@ -146,9 +152,21 @@ workflow.add_conditional_edges(
 # Compile
 app = workflow.compile()
 
+def stream_print(text, delay=0.02):
+    for char in text:
+        print(char, end="", flush=True)
+        time.sleep(delay)
+    print()
+
+
 import json
 while True: 
-    msg = input("Write Hear : ")
+    msg =  Prompt.ask("", default="Write Prompt")  
+
+    if msg in ["quit","exit"]:
+        print(result['output'])
+        break
+
     result = invoke_agent(msg)
     result = result.replace("```","")
     result = result.replace("\n","")
@@ -157,12 +175,12 @@ while True:
     end_index = result.rfind("}")
     result = result[start_index:end_index+1]
     print()
-    print("*"*10," AI Responce ","*"*10)
-    print(result)
+
+    with console.status("Generating ..."):
+        time.sleep(10)
+        
+    console.rule(" 🤖 AI Responce ")
+    stream_print("🤖 AI Responce -> "+result)
     result = json.loads(result)
 
-    if result['status'] in ["Completed","Error"]:
-        print(result['output'])
-        break
-
-
+    
